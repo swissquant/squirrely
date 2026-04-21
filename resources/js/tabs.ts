@@ -1,4 +1,4 @@
-import { resizeEquityCharts, resizePerBasketCharts } from './charts.ts'
+import { resizeAllocationPie, resizeEquityCharts, resizePerBasketCharts } from './charts.ts'
 
 export function wireTabs(): void {
   const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>('.tab-btn'))
@@ -16,6 +16,7 @@ export function wireTabs(): void {
     for (const p of panels) p.classList.toggle('hidden', p.dataset.tab !== name)
     if (name === 'equity') resizeEquityCharts()
     else if (name === 'per-asset') resizePerBasketCharts()
+    else if (name === 'allocation') resizeAllocationPie()
   }
 
   for (const b of buttons) {

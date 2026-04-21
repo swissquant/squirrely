@@ -1,4 +1,5 @@
 import { $ } from './dom.ts'
+import { renderAllocationPie, type AllocationSlice } from './charts.ts'
 import { fmtPct, fmtUsd, parsePortfolioUsd } from './format.ts'
 import { appState } from './state.ts'
 import type { AllocationRow } from './types.ts'
@@ -35,15 +36,27 @@ export function renderAllocation(): void {
   const scale = totalWeight > 1 ? 1 / totalWeight : 1
   const cashWeight = totalWeight > 1 ? 0 : appState.cashWeight
 
+  const visibleRows = appState.latestAllocation
+    .filter((row) => row.weight !== 0)
+    .map((row) => ({ ...row, weight: row.weight * scale }))
+
   const tbody = $<HTMLTableSectionElement>('allocBody')
-  tbody.replaceChildren(
-    ...appState.latestAllocation
-      .filter((row) => row.weight !== 0)
-      .map((row) => buildRow({ ...row, weight: row.weight * scale }, usd))
-  )
+  tbody.replaceChildren(...visibleRows.map((row) => buildRow(row, usd)))
 
   const cashUsd = usd * cashWeight
   $('alloc-cash-weight').textContent = fmtPct(cashWeight, 1)
   $('alloc-cash-usd').textContent = fmtUsd(cashUsd)
   $('alloc-cash-label').textContent = ''
+
+  const slices: AllocationSlice[] = visibleRows.map((row) => ({
+    label: row.label,
+    weight: row.weight,
+    usd: usd * row.weight,
+  }))
+  const cashSlice: AllocationSlice = {
+    label: 'Cash',
+    weight: cashWeight,
+    usd: cashUsd,
+  }
+  renderAllocationPie(slices, cashSlice)
 }

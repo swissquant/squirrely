@@ -20,9 +20,31 @@ const LINE_PALETTE = [
   '#7c3aed',
 ]
 
+const ALLOCATION_PALETTE = [
+  '#5A45FF', // indigo
+  '#f59e0b', // amber
+  '#0891b2', // cyan
+  '#db2777', // pink
+  '#059669', // emerald
+  '#dc2626', // red
+  '#ca8a04', // gold
+  '#7c3aed', // violet
+  '#2563eb', // blue
+  '#c026d3', // fuchsia
+  '#16a34a', // green
+  '#ea580c', // orange
+  '#0d9488', // teal
+  '#e11d48', // rose
+  '#65a30d', // lime
+  '#9333ea', // purple
+]
+
 let equityChart: Chart | null = null
 let drawdownChart: Chart | null = null
+let allocationPieChart: Chart | null = null
 const perBasketCharts = new Map<string, Chart>()
+
+const CASH_COLOR = '#a8a29e'
 
 const timeAxis = (fontSize?: number) => ({
   type: 'time' as const,
@@ -256,6 +278,107 @@ export function renderPerAsset(perAsset: AssetSeries[]): void {
   }
 }
 
+export interface AllocationSlice {
+  label: string
+  weight: number
+  usd: number
+}
+
+function renderAllocationLegend(
+  data: AllocationSlice[],
+  colors: string[]
+): void {
+  const host = document.getElementById('allocationLegend')
+  if (!host) return
+
+  host.replaceChildren(
+    ...data.map((slice, i) => {
+      const row = document.createElement('div')
+      row.className = 'flex items-center gap-2 min-w-0'
+
+      const dot = document.createElement('span')
+      dot.className = 'w-2.5 h-2.5 rounded-full shrink-0'
+      dot.style.backgroundColor = colors[i]
+
+      const label = document.createElement('span')
+      label.className = 'flex-1 truncate text-stone-700'
+      label.textContent = slice.label
+
+      const pct = document.createElement('span')
+      pct.className = 'tabular-nums text-stone-500 shrink-0'
+      pct.textContent = (slice.weight * 100).toFixed(1) + '%'
+
+      row.append(dot, label, pct)
+      return row
+    })
+  )
+}
+
+export function renderAllocationPie(slices: AllocationSlice[], cashSlice: AllocationSlice): void {
+  const canvas = document.getElementById('allocationPie') as HTMLCanvasElement | null
+  if (!canvas) return
+
+  const data = [...slices, cashSlice]
+  const labels = data.map((s) => s.label)
+  const weights = data.map((s) => s.weight)
+  const usds = data.map((s) => s.usd)
+  const colors = data.map((_, i) =>
+    i === data.length - 1 ? CASH_COLOR : ALLOCATION_PALETTE[i % ALLOCATION_PALETTE.length]
+  )
+
+  renderAllocationLegend(data, colors)
+
+  if (!allocationPieChart) {
+    allocationPieChart = new Chart(canvas.getContext('2d')!, {
+      type: 'doughnut',
+      data: {
+        labels,
+        datasets: [
+          {
+            data: weights,
+            backgroundColor: colors,
+            borderColor: '#ffffff',
+            borderWidth: 2,
+            hoverOffset: 6,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        cutout: '60%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: (item) => {
+                const w = (item.parsed as number) ?? 0
+                const u = usds[item.dataIndex] ?? 0
+                return `${item.label}: ${(w * 100).toFixed(1)}% · ${fmtUsd(u)}`
+              },
+            },
+          },
+        },
+      },
+    })
+  } else {
+    allocationPieChart.data.labels = labels
+    const ds = allocationPieChart.data.datasets[0]
+    ds.data = weights
+    ds.backgroundColor = colors
+    const opts = allocationPieChart.options
+    if (opts?.plugins?.tooltip?.callbacks) {
+      opts.plugins.tooltip.callbacks.label = (item) => {
+        const w = (item.parsed as number) ?? 0
+        const u = usds[item.dataIndex] ?? 0
+        return `${item.label}: ${(w * 100).toFixed(1)}% · ${fmtUsd(u)}`
+      }
+    }
+    allocationPieChart.update('none')
+  }
+}
+
 export function resizeEquityCharts(): void {
   equityChart?.resize()
   drawdownChart?.resize()
@@ -263,4 +386,8 @@ export function resizeEquityCharts(): void {
 
 export function resizePerBasketCharts(): void {
   for (const c of perBasketCharts.values()) c.resize()
+}
+
+export function resizeAllocationPie(): void {
+  allocationPieChart?.resize()
 }
