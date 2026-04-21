@@ -1,0 +1,13 @@
+@import 'tailwindcss';
+
+@source '../views/**/*.edge';
+@source '../js/**/*.js';
+
+@import '@fontsource/instrument-sans/400.css';
+@import '@fontsource/instrument-sans/500.css';
+@import '@fontsource/instrument-sans/600.css';
+@import '@fontsource/instrument-sans/700.css';
+
+@theme {
+  --font-sans: 'Instrument Sans', sans-serif;
+}

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Squirrely</title>
+    @vite(['resources/css/app.css', 'resources/js/app.ts'])
+  </head>
+  <body class="min-h-screen font-sans bg-stone-50 text-stone-900">
+    <div class="max-w-7xl mx-auto px-6 py-8">
+      <header class="mb-6 flex items-center justify-between gap-4">
+        <h1 class="text-2xl font-semibold">Squirrely 🐿️</h1>
+        <div class="flex items-center gap-3">
+          <p id="last-rebalance" class="text-sm text-stone-500"></p>
+        </div>
+      </header>
+
+      <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {{-- Sliders --}}
+        <aside class="lg:col-span-1 bg-white rounded-lg border border-stone-200 p-5 space-y-5">
+          <h2 class="font-semibold text-stone-700">Parameters</h2>
+
+          <div>
+            <label class="flex justify-between text-sm font-medium" for="portfolioUsd">
+              <span>Portfolio size (USD)</span>
+            </label>
+            <input id="portfolioUsd" type="text" inputmode="numeric" value="100,000"
+              class="w-full mt-1 rounded border border-stone-300 text-sm py-1 px-2 text-right tabular-nums">
+          </div>
+
+          <div>
+            <label class="flex justify-between text-sm font-medium">
+              <span>Portfolio construction</span>
+            </label>
+            <select id="mode" class="w-full mt-1 rounded border border-stone-300 text-sm py-1 px-2">
+              <option value="inverse_vol" selected>Inverse-vol (naive risk parity)</option>
+              <option value="erc">ERC (equal risk contribution)</option>
+            </select>
+          </div>
+
+          <div>
+            <p class="text-sm font-medium mb-2">Risk appetite</p>
+            <div class="space-y-1">
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="volPreset" value="0.05" class="vol-preset" checked> Conservative <span class="text-stone-500">(5% vol)</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="volPreset" value="0.10" class="vol-preset"> Balanced <span class="text-stone-500">(10% vol)</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="volPreset" value="0.20" class="vol-preset"> Aggressive <span class="text-stone-500">(20% vol)</span>
+              </label>
+              <label class="flex items-center gap-2 text-sm">
+                <input type="radio" name="volPreset" value="custom" class="vol-preset"> Custom <span id="volTargetLabel" class="text-stone-500"></span>
+              </label>
+            </div>
+            <input id="volTarget" type="range" min="1" max="40" step="1" value="10" class="w-full mt-2 hidden">
+          </div>
+
+          <div>
+            <label class="flex justify-between text-sm font-medium">
+              <span>Vol lookback</span>
+            </label>
+            <select id="volWindow" class="w-full mt-1 rounded border border-stone-300 text-sm py-1 px-2">
+              <option value="63">3 months</option>
+              <option value="126">6 months</option>
+              <option value="252" selected>1 year</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="flex justify-between text-sm font-medium">
+              <span>Cash yield</span>
+              <span id="cashYieldLabel" class="text-stone-500"></span>
+            </label>
+            <input id="cashYield" type="number" min="0" max="100" step="0.1" value="0"
+              class="w-full mt-1 rounded border border-stone-300 text-sm py-1 px-2 text-right tabular-nums">
+          </div>
+
+          <div>
+            <label class="flex justify-between text-sm font-medium">
+              <span>Rebalance frequency</span>
+            </label>
+            <select id="rebalanceFreq" class="w-full mt-1 rounded border border-stone-300 text-sm py-1 px-2">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="monthly" selected>Monthly</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="flex justify-between text-sm font-medium">
+              <span>Start date</span>
+            </label>
+            <input id="startDate" type="date" value="2000-01-01" class="w-full mt-1 rounded border border-stone-300 text-sm py-1 px-2">
+          </div>
+
+          <div>
+            <p class="text-sm font-medium mb-2">Baskets & instruments</p>
+            <div class="space-y-2">
+              @each(basket in baskets)
+                <div class="border border-stone-100 rounded-md p-2">
+                  <label class="flex items-center gap-2 text-sm font-medium">
+                    <input type="checkbox" class="basket-toggle" data-basket="{{ basket.id }}" {{ basket.enabled ? 'checked' : '' }}>
+                    {{ basket.label }}
+                  </label>
+                  @if(basket.nested)
+                    <div class="pl-5 mt-1 space-y-1.5">
+                      @each(sub in basket.subBaskets)
+                        <div>
+                          <label class="flex items-center gap-2 text-xs font-medium text-stone-700">
+                            <input type="checkbox" class="subbasket-toggle" data-subbasket="{{ sub.id }}" data-basket="{{ basket.id }}" {{ sub.enabled ? 'checked' : '' }}>
+                            {{ sub.label }}
+                          </label>
+                          <div class="pl-5 mt-0.5 space-y-0.5">
+                            @each(market in sub.markets)
+                              <label class="flex items-center gap-2 text-xs text-stone-600">
+                                <input type="checkbox" class="market-toggle" data-market="{{ market.id }}" data-basket="{{ basket.id }}" data-subbasket="{{ sub.id }}" {{ market.enabled ? 'checked' : '' }}>
+                                {{ market.label }}
+                              </label>
+                            @endeach
+                          </div>
+                        </div>
+                      @endeach
+                    </div>
+                  @else
+                    <div class="pl-5 mt-1 space-y-0.5">
+                      @each(sub in basket.subBaskets)
+                        @each(market in sub.markets)
+                          <label class="flex items-center gap-2 text-xs text-stone-600">
+                            <input type="checkbox" class="market-toggle" data-market="{{ market.id }}" data-basket="{{ basket.id }}" data-subbasket="{{ sub.id }}" {{ market.enabled ? 'checked' : '' }}>
+                            {{ market.label }}
+                          </label>
+                        @endeach
+                      @endeach
+                    </div>
+                  @endif
+                </div>
+              @endeach
+            </div>
+          </div>
+
+        </aside>
+
+        {{-- Chart + metrics + allocation --}}
+        <section class="lg:col-span-3 space-y-6">
+          <div class="border-b border-stone-200 flex gap-1 text-sm">
+            <button type="button" class="tab-btn px-4 py-2 border-b-2 border-stone-900 font-medium text-stone-900" data-tab="equity">Equity curve</button>
+            <button type="button" class="tab-btn px-4 py-2 border-b-2 border-transparent text-stone-500 hover:text-stone-800" data-tab="per-asset">Per-asset curves</button>
+            <button type="button" class="tab-btn px-4 py-2 border-b-2 border-transparent text-stone-500 hover:text-stone-800" data-tab="allocation">Live allocation</button>
+          </div>
+
+          <div class="tab-panel space-y-6" data-tab="equity">
+            <div id="metricsStrip" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div class="bg-white rounded-lg border border-stone-200 p-4 text-center">
+                <p class="text-xs text-stone-500 uppercase tracking-wide">CAGR</p>
+                <p id="m-cagr" class="text-xl font-semibold mt-1">—</p>
+                <p id="m-cagr-usd" class="text-xs text-stone-500 mt-0.5">—</p>
+              </div>
+              <div class="bg-white rounded-lg border border-stone-200 p-4 text-center">
+                <p class="text-xs text-stone-500 uppercase tracking-wide">Realized Vol</p>
+                <p id="m-vol" class="text-xl font-semibold mt-1">—</p>
+                <p id="m-vol-usd" class="text-xs text-stone-500 mt-0.5">—</p>
+              </div>
+              <div class="bg-white rounded-lg border border-stone-200 p-4 text-center">
+                <p class="text-xs text-stone-500 uppercase tracking-wide">Sharpe Ratio</p>
+                <p id="m-sharpe" class="text-xl font-semibold mt-1">—</p>
+              </div>
+              <div class="bg-white rounded-lg border border-stone-200 p-4 text-center">
+                <p class="text-xs text-stone-500 uppercase tracking-wide">Max Drawdown</p>
+                <p id="m-mdd" class="text-xl font-semibold mt-1">—</p>
+                <p id="m-mdd-usd" class="text-xs text-stone-500 mt-0.5">—</p>
+              </div>
+            </div>
+
+            <div class="bg-white rounded-lg border border-stone-200 p-5">
+              <div class="relative h-80">
+                <canvas id="equityChart"></canvas>
+                <div id="loadingOverlay" class="absolute inset-0 bg-white/60 flex items-center justify-center text-stone-500 hidden">
+                  Simulating...
+                </div>
+              </div>
+              <div class="relative h-40 mt-4 pt-4 border-t border-stone-100">
+                <canvas id="drawdownChart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-panel hidden" data-tab="per-asset">
+            <p class="text-xs text-stone-500 mb-3">Per-asset equity curves · each held alone, scaled to the vol target · grouped by basket</p>
+            <div id="perBasketCharts" class="grid grid-cols-1 lg:grid-cols-2 gap-4"></div>
+          </div>
+
+          <div class="tab-panel hidden" data-tab="allocation">
+            <div class="bg-white rounded-lg border border-stone-200 p-5">
+              <div class="mb-4">
+                <h2 class="font-semibold text-stone-700">Live allocation</h2>
+              </div>
+
+              <table class="w-full text-sm">
+                <thead class="text-left text-stone-500 text-xs uppercase tracking-wide">
+                  <tr class="border-b border-stone-100">
+                    <th class="py-2">Basket</th>
+                    <th>Market</th>
+                    <th class="text-right">Weight</th>
+                    <th class="text-right">USD size</th>
+                    <th class="text-right pr-2">Native</th>
+                    <th>Unit</th>
+                  </tr>
+                </thead>
+                <tbody id="allocBody"></tbody>
+                <tfoot class="border-t border-stone-200 text-stone-600">
+                  <tr>
+                    <td colspan="2" class="py-2 font-medium">Cash</td>
+                    <td id="alloc-cash-weight" class="text-right">—</td>
+                    <td id="alloc-cash-usd" class="text-right">—</td>
+                    <td colspan="2" id="alloc-cash-label" class="text-stone-500"></td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <footer class="mt-10 text-center text-xs text-stone-500 max-w-3xl mx-auto leading-relaxed">
+        <strong>Not financial advice.</strong> This tool is for informational and educational purposes only.
+        Historical simulations do not guarantee future results; past performance is not indicative of future performance.
+        Nothing shown here constitutes an offer, solicitation, or recommendation to buy or sell any security, token, or
+        financial instrument. Backtests ignore transaction costs, slippage, taxes, funding costs, and liquidity constraints,
+        and may contain errors in data or methodology. You are solely responsible for your own investment decisions and
+        should consult a qualified, licensed financial advisor before acting on any information shown. Use at your own risk.
+      </footer>
+    </div>
+  </body>
+</html>
