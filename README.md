@@ -1,6 +1,6 @@
-# squirrely
+# squirrely 🐿️
 
-A local portfolio construction helper. Pick a basket of markets, choose a sizing rule (inverse-vol or ERC) and a risk target, and see how the resulting weights would have performed historically — all backtested on your machine against Yahoo Finance data. Built with AdonisJS + SQLite, no external services required.
+A local portfolio construction helper. Pick a basket of markets, choose a sizing rule (inverse-vol or ERC) and a risk target, and see how the resulting weights would have performed historically — all backtested on your machine against Yahoo Finance data. The Live allocation tab translates those target weights into the exact USD amounts and native units (shares, BTC, etc.) to buy today to match the ideal portfolio. Built with AdonisJS + SQLite, no external services required.
 
 ## Requirements
 
