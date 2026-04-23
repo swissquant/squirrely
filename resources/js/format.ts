@@ -17,17 +17,6 @@ export function fmtUsd(x: number | null | undefined): string {
   return sign + '$' + abs.toLocaleString(undefined, { maximumFractionDigits: 0 })
 }
 
-export function formatDataFreshness(iso: string): string {
-  const asOf = new Date(iso + 'T00:00:00Z')
-  if (Number.isNaN(asOf.getTime())) return `as of ${iso}`
-  const now = new Date()
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  const diffDays = Math.max(0, Math.round((today - asOf.getTime()) / 86400000))
-  if (diffDays === 0) return 'up to date'
-  if (diffDays === 1) return '1 day old'
-  return `${diffDays} days old`
-}
-
 export function parsePortfolioUsd(): number {
   const el = $<HTMLInputElement>('portfolioUsd')
   const raw = el.value.replace(/[^0-9]/g, '')

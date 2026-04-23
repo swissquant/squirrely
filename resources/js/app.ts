@@ -1,5 +1,5 @@
 import { $ } from './dom.ts'
-import { formatPortfolioUsdInput, formatDataFreshness } from './format.ts'
+import { formatPortfolioUsdInput } from './format.ts'
 import { readParams, updateLabels } from './params.ts'
 import { appState, loadState, saveState } from './state.ts'
 import { applyCascade, cascadeFromBasket, cascadeFromSubBasket } from './cascade.ts'
@@ -34,9 +34,7 @@ async function runSimulation(): Promise<void> {
     renderPerAsset(data.perAsset ?? [])
     renderAllocation()
 
-    $('last-rebalance').textContent = data.dataAsOfDate
-      ? `Data ${formatDataFreshness(data.dataAsOfDate)}`
-      : ''
+    $('last-rebalance').textContent = ''
   } catch (e) {
     if (!(e instanceof DOMException && e.name === 'AbortError')) {
       console.error(e)
